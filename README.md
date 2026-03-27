@@ -406,3 +406,9 @@ Also triggers automatically when a conversation naturally ends.
 **Dual-track separation**: Human cognitive assets and AI operational memory evolve independently. Mixing them causes misattribution — the most insidious of Schacter's seven sins because the user may never notice it's happening.
 
 **Constitution before evolution**: The system's evolvability is only safe because its semantic foundations are immutable. Designing what cannot change is the prerequisite for safely designing what can.
+
+---
+
+## License
+
+MIT © Tanangyuanan
