@@ -17,69 +17,124 @@
 
 ### 权重定义
 
-每层有一个读取权重值，决定该层在启动时被读取的优先级和深度：
+每层有一个基础权重（`weight`）和一个读取优先级（`reading_priority`）：
 
-| 权重值 | 含义 |
-|--------|------|
+| weight 值 | 含义 |
+|-----------|------|
 | 2.0 | 最高优先级，完整读取，每条卡片都精细比对 |
 | 1.5 | 高优先级，完整读取 |
 | 1.0 | 标准读取（默认值） |
 | 0.7 | 低优先级，只读最近3个月的条目 |
 | 0.5 | 最低优先级，只读标题和状态字段 |
 
-**范围约束**：所有权重值限定在 [0.5, 2.0] 之间。超出边界时自动截断，不报错。
+`reading_priority = weight + exploration_bonus`（见步骤3），用于本次实际读取排序。
+
+**范围约束**：`weight` 限定在 [0.5, 2.0] 之间。`reading_priority` 可超出上限（探索项会暂时提升超低权重层）。
 
 ---
 
-### 权重更新算法（精确版）
+### 权重更新算法（EMA + UCB 混合，v2）
+
+**理论基础**
+- **EMA（指数移动平均）**：防止单次对话剧烈扭曲权重，引入历史惯性（Ebbinghaus, 1885）
+- **UCB（上置信界）**：防止注意力盲区——长期未命中的层获得探索奖励，强制定期审视（Auer et al., 2002）
+- **质量加权**：区分「新认知」「扩展」「确认」三种命中类型，信息增益越高贡献越大
 
 **触发时机**：Phase 6，每次对话结束后执行一次，且仅执行一次。
 
-**步骤1：统计本次对话的层级命中数**
+---
+
+**步骤1：计算质量加权信号**
+
+回顾本次 Phase 3 的判定结果，按卡片类型统计：
+
+| 命中类型 | 来源（Phase 3 STEP 2 判定） | 信号值 |
+|---------|--------------------------|--------|
+| `new_card` | <40% 语义重叠，新建卡片 | × 0.20 |
+| `extended_card` | 40-80% 语义重叠，追加例证 | × 0.10 |
+| `confirmed_card` | >80% 语义重叠，仅更新确认次数 | × 0.03 |
 
 ```
-hit_count[L1] = 本次新建或更新的 L1 层卡片数
-hit_count[L2] = 本次新建或更新的 L2 层卡片数
-hit_count[L3] = 本次新建或更新的 L3 层卡片数
-hit_count[L4] = 本次新建或更新的 L4 层卡片数
-hit_count[ai-L1] = 本次新建的日报条目数（通常=1）
-hit_count[ai-L3] = 本次新建或更新的 ai-space/L3-experience 条目数
+quality_signal[层] = new_cards × 0.20 + extended_cards × 0.10 + confirmed_cards × 0.03
 ```
 
-**步骤2：计算增减**
+---
+
+**步骤2：EMA 更新基础权重（α = 0.3）**
 
 ```
-对每一层：
-  如果 hit_count[层] > 0：
-    新权重 = 当前权重 + 0.1
-  如果 hit_count[层] == 0：
-    新权重 = 当前权重 - 0.05
+如果 quality_signal[层] > 0（本次有命中）：
+  target = min(2.0, 当前 weight + quality_signal[层])
+  total_hits[层] += 1
 
-  新权重 = max(0.5, min(2.0, 新权重))  # 强制在范围内
+如果 quality_signal[层] == 0（本次无命中）：
+  target = max(0.5, 当前 weight - 0.05)
+
+新 weight = round(0.7 × 当前 weight + 0.3 × target, 2)
+新 weight = max(0.5, min(2.0, 新 weight))  # 强制范围
 ```
 
-**步骤3：更新 reading-weights.md**
+α = 0.3 的含义：本次活动占 30%，历史惯性占 70%。单次爆发不会立即主导权重，持续活跃才能稳步提升。
 
-写入格式：
+---
+
+**步骤3：计算 UCB 探索奖励（不写入 weight，仅影响本次读取排序）**
+
+```
+exploration_bonus[层] = 0.15 × √(ln(session_count) / max(1, total_hits[层]))
+
+reading_priority[层] = 新 weight + exploration_bonus[层]
+```
+
+UCB 的含义：`total_hits` 越低（长期被忽视的层），探索奖励越高，强制系统在下次读取时优先扫描。防止注意力因"马太效应"固化到少数活跃层。
+
+**迁移说明**：`total_hits` 字段首次运行时不存在，初始化为 1，避免除零。
+
+---
+
+**步骤4：写入 reading-weights.md**
+
 ```yaml
 # system/reading-weights.md
 # 最后更新：YYYY-MM-DD（第N次会话）
 
 layer_focus:
-  L1_context:    [值]   # 上次变化：[+0.1 / -0.05 / 无变化]
-  L2_behavior:   [值]   # 上次变化：[+0.1 / -0.05 / 无变化]
-  L3_cognitive:  [值]   # 上次变化：[+0.1 / -0.05 / 无变化]
-  L4_core:       [值]   # 上次变化：[+0.1 / -0.05 / 无变化]
-  ai_L1_memory:  [值]   # 上次变化：[+0.1 / -0.05 / 无变化]
-  ai_L3_experience: [值] # 上次变化：[+0.1 / -0.05 / 无变化]
+  L1_context:
+    weight: 1.0                    # 基础权重（EMA更新）
+    total_hits: 3                  # 累计命中会话数（UCB分母）
+    reading_priority: 1.12         # weight + exploration_bonus（本次读取排序用）
+    last_change: "EMA: 0.7×1.0 + 0.3×1.1，信号强度=0.10（1张extended）"
+  L2_behavior:
+    weight: 1.2
+    total_hits: 5
+    reading_priority: 1.29
+    last_change: "EMA: 0.7×1.1 + 0.3×1.3，信号强度=0.20（1张new_card）"
+  L3_cognitive:
+    weight: 0.8
+    total_hits: 1
+    reading_priority: 1.07         # 低weight但高UCB，会被优先读取
+    last_change: "EMA: 0.7×0.85 + 0.3×0.75，无命中→衰减"
+  L4_core:
+    weight: 1.0
+    total_hits: 2
+    reading_priority: 1.11
+    last_change: "无命中，EMA衰减"
+  ai_L1_memory:
+    weight: 1.3
+    total_hits: 8
+    reading_priority: 1.34
+    last_change: "EMA: 日报条目命中，信号强度=0.10"
+  ai_L3_experience:
+    weight: 0.9
+    total_hits: 2
+    reading_priority: 1.01
+    last_change: "无命中，EMA衰减"
 
 meta:
-  session_count: N
-  dominant_layer: "[命中最多的层]"
+  session_count: 12
+  dominant_layer: "ai_L1_memory"   # reading_priority 最高的层
   last_updated: YYYY-MM-DD
 ```
-
-**注意**：每次更新必须保留「上次变化」注释，方便人工理解权重的演化方向。
 
 ---
 
@@ -157,9 +212,13 @@ analysis_focus:
 
 **检查项1：权重极化检测**
 ```
-如果任意层权重达到2.0 且 另一层权重达到0.5：
-  输出警告："[健康度警告] 读取权重出现极化（某层2.0，某层0.5），建议检查是否存在信息盲区。"
+如果任意层 weight 达到2.0 且 另一层 total_hits 仍然 <= 2：
+  输出警告："[健康度警告] 读取权重出现极化，且某层几乎未被命中（total_hits≤2）。
+  UCB探索项可能已不足以弥补，建议人工检查是否存在信号识别盲区。"
   不自动修正，交由人工判断。
+
+注：UCB机制会自动为低total_hits层提高reading_priority，轻度极化会自我修正。
+只有total_hits极低时才需告警。
 ```
 
 **检查项2：长期未触及层检测**

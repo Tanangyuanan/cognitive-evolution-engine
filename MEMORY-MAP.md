@@ -32,8 +32,12 @@
 │   ├── L3-experience/              # AI执行任务后的经验沉淀
 │   │   ├── success-cases.md        # 成功案例（含可复用的操作模式）
 │   │   └── failure-cases.md        # 失败/坑点记录（含规避规则）
-│   └── L4-capability/              # AI的核心能力清单
-│       └── skills-index.md         # 已创建的Skills + MCP工具索引
+│   ├── L4-capability/              # AI的核心能力清单
+│   │   └── skills-index.md         # 已创建的Skills + MCP工具索引
+│   └── tasks/                      # 跨会话任务看板（多Agent协作中继站）
+│       ├── active/                  # 进行中的任务
+│       │   └── T-YYYYMMDD-NNN.md   # 任务文件（格式见 CARD-FORMAT.md）
+│       └── completed/              # 已完成的任务（归档，不删除）
 │
 └── system/                         # 系统配置（由进化机制自动更新）
     └── reading-weights.md          # 各层读取权重 + 自进化参数
@@ -58,6 +62,8 @@
 | AI成功完成某类任务的模式 | 可复用操作序列 | `ai-space/L3-experience/success-cases.md` |
 | AI执行中遇到的坑点 | 失败/异常/规避规则 | `ai-space/L3-experience/failure-cases.md` |
 | Skill/MCP的新增或更新 | 能力变化 | `ai-space/L4-capability/skills-index.md` |
+| 需要跨会话追踪的多步任务 | 未完成且下次需继续 | `ai-space/tasks/active/T-YYYYMMDD-NNN.md` |
+| 任务完成 | 任务状态变为已完成 | 移动到 `ai-space/tasks/completed/` |
 
 ---
 

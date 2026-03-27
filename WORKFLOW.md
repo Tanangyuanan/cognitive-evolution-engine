@@ -127,13 +127,14 @@
 
 ## Phase 6：系统自进化
 
-**目标**：根据本次对话的层级活跃度，更新读取权重。
+**目标**：根据本次对话的层级活跃度，更新读取权重（EMA + UCB 算法）。
 
 **权重更新算法**（详见 EVOLUTION.md）：
-1. 统计本次对话各层新建/更新的卡片数量
-2. 有命中的层权重 +0.1，未触及的层权重 -0.05（下限 0.5，上限 2.0）
-3. 将新权重写入 `system/reading-weights.md`
-4. 同时更新 `session_count` +1 和 `dominant_layer`
+1. 回顾 Phase 3 的判定结果，按卡片类型分层统计：new_card（×0.20）、extended_card（×0.10）、confirmed_card（×0.03）
+2. EMA 更新基础权重：`new_weight = 0.7 × old_weight + 0.3 × target`，有命中则 target 上升，无命中则 target 下降 0.05
+3. 计算 UCB 探索奖励：`0.15 × √(ln(session_count) / max(1, total_hits))`，写入 `reading_priority`（不覆盖 `weight`）
+4. 将新权重、total_hits、reading_priority 写入 `system/reading-weights.md`
+5. 同时更新 `session_count` +1 和 `dominant_layer`（取 reading_priority 最高的层）
 
 ---
 
