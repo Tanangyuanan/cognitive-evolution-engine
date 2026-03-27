@@ -27,7 +27,7 @@
 | **遗忘性** Transience | 记忆随时间衰减 | L1层30天无引用自动标记`[stale]`，会话记录7天归档 |
 | **心不在焉** Absent-mindedness | 编码时注意力不集中，细节丢失 | Phase 2信号提取阶段强制扫描高价值信号表 |
 | **阻断** Blocking | 记忆存在但无法检索 | 卡片格式要求「何时激活」字段，显式定义检索触发条件 |
-| **错误归因** Misattribution | 记忆来源被张冠李戴 | 每张卡片必须标注来源：`[用户原话]`/`[Claude提炼]`/`[共���确认]` |
+| **错误归因** Misattribution | 记忆来源被张冠李戴 | 每张卡片必须标注来源：`[用户原话]`/`[Claude提炼]`/`[共同确认]` |
 | **暗示性** Suggestibility | 记忆被外部信息污染 | 三步判定协议第一步：矛盾检测，新信息不能自动覆盖旧认知 |
 | **偏差** Bias | 当下知识扭曲对过去的记忆 | 认知冲突只追加演化日志，原条目永不覆盖 |
 | **持续性** Persistence | 不想要的记忆反复出现 | L1层衰减机制，过期内容降权而非主动删除 |
@@ -38,7 +38,7 @@
 
 传统笔记的问题在于「依赖上下文」——你看到一条笔记「用户偏好零中断」，三个月后你不知道这是什么意思、为什么重要、什么时候用。卡片笔记法要求每张卡片同时回答：是什么、为什么重要、何时激活、具体例证。
 
-本系统所有写入记忆的内容都严格遵循 Zettelkasten 格式，并明确禁止���水账式的表格记录和依赖上下文的碎片条目。
+本系统所有写入记忆的内容都严格遵循 Zettelkasten 格式，并明确禁止流水账式的表格记录和依赖上下文的碎片条目。
 
 ### 惊奇大脑：Friston 预测误差理论
 
@@ -71,7 +71,7 @@
 │       └── values.md
 │
 ├── ai-space/                 # AI 操作空间（关于 AI 如何为你工作）
-│   ├─�� L1-memory/daily/      # 每次对话的会话日报（7天后归档）
+│   ├── L1-memory/daily/      # 每次对话的会话日报（7天后归档）
 │   ├── L2-resource/          # 稳定的外部资源和工具引用
 │   ├── L3-experience/        # 成功案例与失败坑点记录
 │   └── L4-capability/        # Skills + MCP 能力索引
@@ -188,11 +188,8 @@ meta:
 ## 安装方式
 
 ```bash
-# 克隆到本地
 git clone https://github.com/Tanangyuanan/cognitive-evolution-engine.git
-
-# 软链接到 Claude Skills 目录
-ln -s /path/to/cognitive-evolution-engine ~/.claude/skills/cognitive-evolution-engine
+cp -r cognitive-evolution-engine ~/.claude/skills/cognitive-evolution-engine
 ```
 
 首次使用时告知 AI 你的记忆目录位置：
