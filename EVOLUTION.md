@@ -50,7 +50,7 @@ hit_count[ai-L3] = 本次新建或更新的 ai-space/L3-experience 条目数
 
 ```
 对每一层：
-  如��� hit_count[层] > 0：
+  如果 hit_count[层] > 0：
     新权重 = 当前权重 + 0.1
   如果 hit_count[层] == 0：
     新权重 = 当前权重 - 0.05

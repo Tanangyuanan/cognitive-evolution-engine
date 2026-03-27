@@ -384,7 +384,7 @@ Each file answers a single question and has a different update frequency:
 
 ```bash
 git clone https://github.com/Tanangyuanan/cognitive-evolution-engine.git
-ln -s /path/to/cognitive-evolution-engine ~/.claude/skills/cognitive-evolution-engine
+cp -r cognitive-evolution-engine ~/.claude/skills/cognitive-evolution-engine
 ```
 
 On first use, tell your AI assistant where your memory directory lives:
